@@ -363,9 +363,8 @@
           const url = buildDestinationUrl(path);
 
           // Nota: window.open com 'noopener' retorna null em browsers modernos por segurança,
-          // tornando a detecção de popup bloqueado não confiável. Abrimos e assumimos sucesso.
+          // tornando a detecção de popup bloqueado não confiável.
           window.open(url, '_blank', 'noopener,noreferrer');
-          setStatus('Nova aba solicitada com sucesso.');
         }
 
         destinationButtons.forEach(function (button) {
