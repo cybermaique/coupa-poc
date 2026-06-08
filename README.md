@@ -1,13 +1,32 @@
-# Intelligent Buy Launchers
+# Intelligent Buy Coupa Launcher
 
-POC estática de launchers para abrir o Intelligent Buy a partir de iframes em ferramentas externas.
+POC estatica de launcher para abrir o Intelligent Buy a partir de um iframe configurado no Coupa.
 
-## Entradas disponíveis
+Este projeto e exclusivo para Coupa/Sourcing. Ele foi pensado para aparecer em um painel horizontal/medio dentro da tela de requisicao do Coupa e oferecer duas acoes:
 
-- `index.html`: launcher vertical para SAP Ariba. Preserva os query params recebidos e abre Mapa ou Resumo em uma nova aba.
-- `coupa.html`: launcher horizontal para Coupa/Sourcing. Usa `object_id` como identificador do objeto e preenche os aliases esperados pelo Intelligent Buy.
+- Abrir Mapa
+- Abrir Resumo
 
-## Configuração
+## Arquivos
+
+- `index.html.html`: pagina principal do launcher Coupa.
+- `launcher.config.js`: configuracao das rotas do Intelligent Buy.
+
+## Como funciona
+
+O Coupa chama o launcher enviando parametros pela URL. O parametro principal esperado e:
+
+- `object_id`: identificador do objeto Coupa.
+
+Quando `object_id` estiver presente, o launcher tambem envia os aliases esperados pelo Intelligent Buy:
+
+- `projectId=<object_id>`
+- `eventId=<object_id>`
+- `negotiationCode=<object_id>`
+
+Todos os demais query params recebidos do Coupa sao preservados ao abrir Mapa ou Resumo.
+
+## Configuracao
 
 Os destinos ficam centralizados em `launcher.config.js`:
 
@@ -19,57 +38,31 @@ window.ARIBA_LAUNCHER_CONFIG = {
 };
 ```
 
+Apesar do nome legado da variavel de configuracao, este projeto esta documentado e preparado para uso no Coupa.
+
 - `appBaseUrl`: URL base do Intelligent Buy.
 - `mapPath`: rota usada para abrir o Mapa.
 - `summaryPath`: rota usada para abrir o Resumo.
 
-## Launcher Ariba
-
-O `index.html` mantém o comportamento original:
-
-- Recebe os parâmetros enviados pela Ariba na URL do launcher.
-- Mantém esses parâmetros ao abrir `Abrir Mapa` ou `Abrir Resumo`.
-- Usa fallback manual quando o navegador ou o iframe bloqueia a abertura automática da nova aba.
-
-Exemplo local:
+## Exemplo local
 
 ```text
-http://localhost:3000?realm=744862388-T&eventId=Doc2200752930&projectId=WS2200752923
+http://localhost:3000/index.html.html?coupahost=stratesys-latam-demo.coupacloud.com&object_id=455&object_type=quote_request&user_id=1364
 ```
 
-Valide:
-
-1. `Abrir Mapa` abre `https://uintelligentbuy-hml.stratesys.io/admin/maps` preservando os parâmetros.
-2. `Abrir Resumo` abre `https://uintelligentbuy-hml.stratesys.io/admin/review/quotation` preservando os parâmetros.
-3. O fallback exibe `Abrir link manualmente` e `Copiar link` caso a nova aba seja bloqueada.
-
-## Launcher Coupa
-
-O `coupa.html` foi pensado para o iframe horizontal/médio do Coupa.
-
-Ele preserva todos os parâmetros recebidos e, quando `object_id` existir, também envia:
-
-- `projectId=<object_id>`
-- `eventId=<object_id>`
-- `negotiationCode=<object_id>`
-
-Exemplo local:
-
-```text
-http://localhost:3000/coupa.html?coupahost=stratesys-latam-demo.coupacloud.com&object_id=455&object_type=quote_request&user_id=1364
-```
-
-URLs esperadas ao clicar:
+Ao clicar em `Abrir Mapa`, a URL gerada deve seguir este formato:
 
 ```text
 https://uintelligentbuy-hml.stratesys.io/admin/maps?coupahost=stratesys-latam-demo.coupacloud.com&object_id=455&object_type=quote_request&user_id=1364&projectId=455&eventId=455&negotiationCode=455
 ```
 
+Ao clicar em `Abrir Resumo`, a URL gerada deve seguir este formato:
+
 ```text
 https://uintelligentbuy-hml.stratesys.io/admin/review/quotation?coupahost=stratesys-latam-demo.coupacloud.com&object_id=455&object_type=quote_request&user_id=1364&projectId=455&eventId=455&negotiationCode=455
 ```
 
-O launcher Coupa não exibe link manual nem botão de copiar. Se a nova aba for bloqueada, ele apenas informa o bloqueio no próprio iframe.
+Se o navegador bloquear a nova aba, o launcher informa o bloqueio no proprio iframe.
 
 ## Como rodar localmente
 
@@ -82,24 +75,25 @@ npx serve .
 Depois abra a URL exibida pelo `serve`, por exemplo:
 
 ```text
-http://localhost:3000
+http://localhost:3000/index.html.html
 ```
 
-## Deploy na Vercel ou Static Web Apps
+## Deploy
 
-Configure o projeto apontando para esta pasta como raiz. Não é necessário build.
+O projeto e estatico e nao precisa de build.
 
-Sugestão:
+Sugestao para Vercel, Azure Static Web Apps ou outro hosting estatico:
 
 - Build command: vazio.
 - Output directory: vazio ou `.` conforme a UI solicitar.
-- `launcher.config.js`, `index.html` e `coupa.html` devem ficar publicados juntos.
+- Publicar `index.html.html` e `launcher.config.js` juntos.
 
-## Validação dentro das ferramentas
+## Validacao no Coupa
 
-O teste final precisa ser feito dentro da SAP Ariba e do Coupa para confirmar:
+O teste final precisa ser feito dentro do Coupa para confirmar:
 
-1. Se o modal/iframe permite `window.open` em uma ação de clique do usuário.
+1. Se o iframe permite `window.open` em uma acao de clique do usuario.
 2. Se os query params chegam corretamente ao launcher.
-3. Se o Intelligent Buy recebe os parâmetros esperados ao abrir Mapa ou Resumo.
-4. Se `/admin/review/quotation` é a rota final correta para o Resumo no ambiente HML.
+3. Se `object_id` chega preenchido na tela de requisicao.
+4. Se o Intelligent Buy recebe `projectId`, `eventId` e `negotiationCode` com o valor de `object_id`.
+5. Se `/admin/review/quotation` e a rota final correta para o Resumo no ambiente HML.
