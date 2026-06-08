@@ -288,7 +288,7 @@
     <script>
       (function () {
         const DEFAULT_CONFIG = {
-          appBaseUrl: 'https://uintelligentbuy-hml.stratesys.io',
+          appBaseUrl: 'https://uintelligentbuy.hml.stratesys.io',
           mapPath: '/admin/maps',
           summaryPath: '/admin/review/quotation',
         };
@@ -361,13 +361,10 @@
 
           const path = destinationType === 'summary' ? config.summaryPath : config.mapPath;
           const url = buildDestinationUrl(path);
-          const openedWindow = window.open(url, '_blank', 'noopener,noreferrer');
 
-          if (!openedWindow || openedWindow.closed || typeof openedWindow.closed === 'undefined') {
-            setStatus('A nova aba foi bloqueada pelo navegador.', 'error');
-            return;
-          }
-
+          // Nota: window.open com 'noopener' retorna null em browsers modernos por segurança,
+          // tornando a detecção de popup bloqueado não confiável. Abrimos e assumimos sucesso.
+          window.open(url, '_blank', 'noopener,noreferrer');
           setStatus('Nova aba solicitada com sucesso.');
         }
 
