@@ -106,6 +106,44 @@
         letter-spacing: 0;
       }
 
+      .language-switcher {
+        display: inline-grid;
+        grid-template-columns: repeat(3, 34px);
+        justify-self: end;
+        gap: 4px;
+        padding: 3px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: #ffffff;
+      }
+
+      .language-button {
+        display: inline-flex;
+        width: 34px;
+        height: 28px;
+        align-items: center;
+        justify-content: center;
+        border: 0;
+        border-radius: 6px;
+        background: transparent;
+        color: var(--muted);
+        font: inherit;
+        font-size: 0.72rem;
+        font-weight: 850;
+        letter-spacing: 0;
+        cursor: pointer;
+      }
+
+      .language-button:hover {
+        background: var(--brand-blue-soft);
+        color: var(--brand-navy);
+      }
+
+      .language-button[aria-pressed='true'] {
+        background: var(--brand-navy);
+        color: #ffffff;
+      }
+
       .eyebrow {
         display: inline-flex;
         align-items: center;
@@ -142,13 +180,38 @@
         line-height: 1.45;
       }
 
+      .reference-diagnostic {
+        max-width: 330px;
+        margin: 10px 0 0;
+        padding: 8px 10px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--surface-muted);
+        color: var(--text);
+        font-size: 0.78rem;
+        font-weight: 700;
+        line-height: 1.45;
+      }
+
+      .reference-diagnostic[data-state='unavailable'] {
+        border-color: #fecdca;
+        color: #b42318;
+      }
+
       .actions {
         display: grid;
-        align-content: center;
-        gap: 12px;
+        align-items: center;
         padding: 22px;
         background: var(--surface-muted);
         border-left: 1px solid var(--border);
+      }
+
+      .actions-content {
+        display: grid;
+        width: 100%;
+        align-content: center;
+        gap: 12px;
+        transform: translateY(-4px);
       }
 
       .button {
@@ -200,7 +263,7 @@
 
       .status {
         min-height: 18px;
-        margin: 0;
+        margin: -4px 0 0;
         color: var(--muted);
         font-size: 0.75rem;
         line-height: 1.35;
@@ -226,6 +289,18 @@
           padding: 14px 16px 10px;
         }
 
+        .language-switcher {
+          grid-template-columns: repeat(3, 30px);
+          grid-column: 1 / -1;
+          justify-self: end;
+        }
+
+        .language-button {
+          width: 30px;
+          height: 26px;
+          font-size: 0.68rem;
+        }
+
         .eyebrow {
           margin-top: 10px;
         }
@@ -239,11 +314,15 @@
         }
 
         .actions {
-          grid-template-columns: 1fr 1fr;
-          gap: 8px;
           padding: 10px 16px 14px;
           border-top: 1px solid var(--border);
           border-left: 0;
+        }
+
+        .actions-content {
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
+          transform: none;
         }
 
         .button {
@@ -266,21 +345,29 @@
             <div class="brand-mark" aria-hidden="true">IB</div>
             <p class="brand-name">Intelligent Buy</p>
           </div>
-          <span class="eyebrow">SmartMap Coupa</span>
-          <h1 class="headline" id="page-title">Abrir no Intelligent Buy</h1>
-          <p class="description">
+          <span class="eyebrow" data-i18n="eyebrow">SmartMap Coupa</span>
+          <h1 class="headline" id="page-title" data-i18n="headline">Abrir no Intelligent Buy</h1>
+          <p class="reference-diagnostic" id="reference-diagnostic" aria-live="polite"></p>
+          <p class="description" data-i18n="description">
             Use o objeto da requisição Coupa para acessar o Mapa ou o Resumo em uma nova aba.
           </p>
         </div>
 
-        <div class="actions" aria-label="Ações disponíveis">
-          <button class="button button-primary" type="button" data-destination="map">
-            Abrir Mapa
-          </button>
-          <button class="button button-secondary" type="button" data-destination="summary">
-            Abrir Resumo
-          </button>
-          <p class="status" id="status" aria-live="polite"></p>
+        <div class="actions" aria-label="Ações disponíveis" data-i18n-aria-label="actionsLabel">
+          <div class="actions-content">
+            <div class="language-switcher" aria-label="Selecionar idioma">
+              <button class="language-button" type="button" data-language="pt" aria-pressed="false">PT</button>
+              <button class="language-button" type="button" data-language="en" aria-pressed="false">EN</button>
+              <button class="language-button" type="button" data-language="es" aria-pressed="false">ES</button>
+            </div>
+            <button class="button button-primary" type="button" data-destination="map" data-i18n="mapButton">
+              Abrir Mapa
+            </button>
+            <button class="button button-secondary" type="button" data-destination="summary" data-i18n="summaryButton">
+              Abrir Resumo
+            </button>
+            <p class="status" id="status" aria-live="polite"></p>
+          </div>
         </div>
       </section>
     </main>
@@ -293,17 +380,141 @@
           summaryPath: '/admin/review/quotation',
         };
 
-        const config = Object.assign({}, DEFAULT_CONFIG, window.ARIBA_LAUNCHER_CONFIG || {});
+        const config = Object.assign({}, DEFAULT_CONFIG, window.COUPA_LAUNCHER_CONFIG || {});
         const status = document.getElementById('status');
+        const referenceDiagnostic = document.getElementById('reference-diagnostic');
         const destinationButtons = document.querySelectorAll('[data-destination]');
+        const languageButtons = document.querySelectorAll('[data-language]');
+        const supportedLanguages = ['pt', 'en', 'es'];
+        let currentLanguage = resolveBrowserLanguage();
+        let currentStatusKey = '';
+        let currentStatusState = '';
+
+        const translations = {
+          pt: {
+            pageTitle: 'Intelligent Buy | Launcher Coupa',
+            languageLabel: 'Selecionar idioma',
+            eyebrow: 'SmartMap Coupa',
+            headline: 'Abrir no Intelligent Buy',
+            description: 'Use o objeto da requisição Coupa para acessar o Mapa ou o Resumo em uma nova aba.',
+            actionsLabel: 'Ações disponíveis',
+            mapButton: 'Abrir Mapa',
+            summaryButton: 'Abrir Resumo',
+            missingObjectId: 'ID do objeto Coupa não recebido.',
+          },
+          en: {
+            pageTitle: 'Intelligent Buy | Coupa Launcher',
+            languageLabel: 'Select language',
+            eyebrow: 'SmartMap Coupa',
+            headline: 'Open in Intelligent Buy',
+            description: 'Use the Coupa request object to open the Map or Summary in a new tab.',
+            actionsLabel: 'Available actions',
+            mapButton: 'Open Map',
+            summaryButton: 'Open Summary',
+            missingObjectId: 'Coupa object ID was not received.',
+          },
+          es: {
+            pageTitle: 'Intelligent Buy | Lanzador Coupa',
+            languageLabel: 'Seleccionar idioma',
+            eyebrow: 'SmartMap Coupa',
+            headline: 'Abrir en Intelligent Buy',
+            description: 'Use el objeto de la solicitud Coupa para acceder al Mapa o al Resumen en una nueva pestaña.',
+            actionsLabel: 'Acciones disponibles',
+            mapButton: 'Abrir Mapa',
+            summaryButton: 'Abrir Resumen',
+            missingObjectId: 'No se recibió el ID del objeto Coupa.',
+          },
+        };
 
         function normalizeValue(value) {
           const normalized = value ? String(value).trim() : '';
           return normalized || '';
         }
 
+        function resolveBrowserLanguage() {
+          const browserLanguages = navigator.languages && navigator.languages.length
+            ? navigator.languages
+            : [navigator.language || navigator.userLanguage || 'pt'];
+          const language = browserLanguages
+            .map(function (value) {
+              return String(value).slice(0, 2).toLowerCase();
+            })
+            .find(function (value) {
+              return supportedLanguages.includes(value);
+            });
+
+          return language || 'pt';
+        }
+
+        function translate(key) {
+          return translations[currentLanguage][key] || translations.pt[key] || '';
+        }
+
+        function applyLanguage(language) {
+          currentLanguage = supportedLanguages.includes(language) ? language : 'pt';
+          document.documentElement.lang = currentLanguage === 'pt' ? 'pt-BR' : currentLanguage;
+          document.title = translate('pageTitle');
+
+          document.querySelectorAll('[data-i18n]').forEach(function (element) {
+            element.textContent = translate(element.dataset.i18n);
+          });
+
+          document.querySelectorAll('[data-i18n-aria-label]').forEach(function (element) {
+            element.setAttribute('aria-label', translate(element.dataset.i18nAriaLabel));
+          });
+
+          document.querySelector('.language-switcher').setAttribute('aria-label', translate('languageLabel'));
+
+          languageButtons.forEach(function (button) {
+            const isActive = button.dataset.language === currentLanguage;
+            button.setAttribute('aria-pressed', String(isActive));
+          });
+
+          if (currentStatusKey) {
+            status.textContent = translate(currentStatusKey);
+          }
+
+          renderReferenceDiagnostic();
+        }
+
         function getIncomingQueryParams() {
           return new URLSearchParams(window.location.search);
+        }
+
+        function getPublicReferenceFromReferrer() {
+          const referrer = normalizeValue(document.referrer);
+          const match = referrer.match(/\/quotes\/requests\/([^\/?#]+)(?:\/|$)/i);
+          return match ? match[1] : '';
+        }
+
+        function renderReferenceDiagnostic() {
+          const objectId = normalizeValue(getIncomingQueryParams().get('object_id'));
+          const publicReference = getPublicReferenceFromReferrer();
+
+          if (publicReference) {
+            referenceDiagnostic.textContent = 'Referência pública detectada: ' + publicReference;
+            referenceDiagnostic.dataset.state = 'detected';
+          } else if (objectId) {
+            referenceDiagnostic.textContent = 'Referência pública não recebida pelo iframe. ID técnico recebido: ' + objectId + '.';
+            referenceDiagnostic.dataset.state = 'unavailable';
+          } else {
+            referenceDiagnostic.textContent = 'Referência pública não recebida pelo iframe.';
+            referenceDiagnostic.dataset.state = 'unavailable';
+          }
+
+          console.info('[Coupa launcher] Diagnóstico da referência pública', {
+            iframeUrl: window.location.href,
+            iframeOrigin: window.location.origin,
+            referrer: document.referrer || '(não informado)',
+            technicalObjectId: objectId || '(não recebido)',
+            detectedPublicReference: publicReference || '(não recebida)',
+          });
+
+          try {
+            console.info('[Coupa launcher] URL da página-pai:', window.parent.location.href);
+          } catch (error) {
+            console.warn('[Coupa launcher] A URL da página-pai não pode ser lida por cross-origin.', error.name);
+          }
         }
 
         function getNormalizedQueryParams() {
@@ -338,8 +549,10 @@
           return destination.toString();
         }
 
-        function setStatus(message, state) {
-          status.textContent = message;
+        function setStatus(messageKey, state) {
+          currentStatusKey = messageKey;
+          currentStatusState = state || '';
+          status.textContent = translate(messageKey);
           status.dataset.state = state || '';
         }
 
@@ -352,7 +565,7 @@
           destinationButtons.forEach(function (button) {
             button.disabled = true;
           });
-          setStatus('ID do objeto Coupa não recebido.', 'error');
+          setStatus('missingObjectId', 'error');
           return false;
         }
 
@@ -373,6 +586,13 @@
           });
         });
 
+        languageButtons.forEach(function (button) {
+          button.addEventListener('click', function () {
+            applyLanguage(button.dataset.language);
+          });
+        });
+
+        applyLanguage(currentLanguage);
         validateRequiredParams();
       })();
     </script>
